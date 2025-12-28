@@ -841,18 +841,3 @@ do
     echo "Press Enter to continue..."
     read
 done
-
-
-
-
-#commit this to github and there is the command to make as a new repo and commit and push the code to the new repo.
-# git init
-# git add .
-# git commit -m "first commit"
-# git branch -M main
-# git remote add origin https://github.com/yourusername/yourrepository.git
-# git push -u origin main
-
-
-
-
