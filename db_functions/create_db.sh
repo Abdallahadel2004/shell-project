@@ -19,10 +19,15 @@ read db_name
 
 # Validate the name using our function
 # If validate_name fails (returns 1), show error and exit
-if ! validate_name "$db_name"
-then
-    exit 1
-fi
+while true; 
+ do
+    if ! validate_name "$db_name"; then
+        echo "Error: Invalid database name. Please try again."
+        read -p "Enter database name: " db_name
+    else
+        break
+    fi
+done
 
 # Check if database already exists
 # -d checks if directory exists
