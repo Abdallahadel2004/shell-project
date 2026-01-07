@@ -1,14 +1,5 @@
 #!/bin/bash
 
-# ============================================
-# SHOW TABLE DATA
-# ============================================
-# Purpose: Display table data
-#   - First show metadata (column info)
-#   - Then show data
-#   - Option to show all or specific columns
-# ============================================
-
 # Load common functions
 source ./common.sh
 
@@ -18,16 +9,15 @@ echo ""
 
 # Show available tables
 echo "Tables in $CURRENT_DB_NAME:"
-for meta_file in "$CURRENT_DB"/*.meta 2>/dev/null
+for meta_file in "$CURRENT_DB"/*.meta
 do
     if [ -f "$meta_file" ]
     then
         basename "$meta_file" .meta
     fi
 done
-echo ""
 
-# Ask which table
+echo ""
 echo "Enter table name:"
 read table_name
 
@@ -41,9 +31,9 @@ fi
 meta_file="$CURRENT_DB/$table_name.meta"
 data_file="$CURRENT_DB/$table_name.data"
 
-# ---------------------------------
+
 # PART 1: Show Metadata (Schema)
-# ---------------------------------
+
 echo ""
 echo "========== TABLE STRUCTURE =========="
 echo ""
@@ -63,9 +53,9 @@ done < "$meta_file"
 
 echo ""
 
-# ---------------------------------
+
 # PART 2: Ask display option
-# ---------------------------------
+
 echo "Display options:"
 echo "  1. Show all columns"
 echo "  2. Select specific columns"
@@ -73,9 +63,9 @@ echo ""
 echo "Enter choice (1 or 2):"
 read display_choice
 
-# ---------------------------------
+
 # PART 3: Show Data
-# ---------------------------------
+
 echo ""
 echo "============ TABLE DATA ============"
 echo ""
@@ -90,7 +80,6 @@ fi
 
 if [ "$display_choice" = "2" ]
 then
-    # Show column numbers for selection
     echo "Available columns:"
     col_num=1
     while IFS=: read -r col_name col_type pk_marker
@@ -102,11 +91,18 @@ then
     echo ""
     echo "Enter column numbers separated by comma (e.g., 1,3):"
     read col_selection
-    
+    echo ""
+
+    #validate the column selection (must be numbers separated by commas)
+    if ! echo "$col_selection" | grep -Eq "^[0-9]+(,[0-9]+)*$"
+    then
+        echo "Error: Invalid column selection. Use format like: 1 or 1,2 or 1,2,3"
+        exit 1
+    fi
+
+
     # Use awk to show selected columns
     # We pass the selection as a variable
-    echo ""
-    
     # Use awk with the selection
     # -F: sets separator to colon
     awk -F: -v cols="$col_selection" '
@@ -154,4 +150,3 @@ else
         print ""
     }' "$data_file"
 fi
-

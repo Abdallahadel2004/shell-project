@@ -1,16 +1,5 @@
 #!/bin/bash
 
-# ============================================
-# UPDATE CELL
-# ============================================
-# Purpose: Update a specific cell value
-#
-# We ask for:
-#   1. Primary Key (to find the row)
-#   2. Column number (which column to update)
-#   3. New value (validated for data type)
-# ============================================
-
 # Load common functions
 source ./common.sh
 
@@ -20,7 +9,7 @@ echo ""
 
 # Show available tables
 echo "Tables in $CURRENT_DB_NAME:"
-for meta_file in "$CURRENT_DB"/*.meta 2>/dev/null
+for meta_file in "$CURRENT_DB"/*.meta
 do
     if [ -f "$meta_file" ]
     then
@@ -53,7 +42,9 @@ fi
 # Show current data for reference
 echo ""
 echo "Current data:"
+echo "Row#	Data"
 awk -F: '{
+    printf "%d\t", NR
     for (i = 1; i <= NF; i++) {
         if (i > 1) printf "\t"
         printf "%s", $i
@@ -62,19 +53,24 @@ awk -F: '{
 }' "$data_file"
 echo ""
 
-# Get Primary Key column name
-pk_name=$(awk -F: '$3 == "pk" {print $1}' "$meta_file")
+#get total number of rows
+total_rows=$(wc -l < "$data_file")
 
-# Ask for Primary Key value
-echo "Enter Primary Key ($pk_name) value:"
-read pk_value
+# Ask for row number
+echo "Enter row number to update (1-$total_rows):"
+read row_number
 
-# Check if row exists
-exists=$(awk -F: -v pk="$pk_value" '$1 == pk {print "found"}' "$data_file")
-
-if [ -z "$exists" ]
+#validate row number is a number
+if ! echo "$row_number" | grep -q "^[0-9][0-9]*$"
 then
-    echo "Error: No row found with $pk_name = '$pk_value'"
+    echo "Error: Invalid row number."
+    exit 1
+fi
+
+#check if row number is in valid range
+if [ "$row_number" -lt 1 ] || [ "$row_number" -gt "$total_rows" ]
+then
+    echo "Error: Row number must be between 1 and $total_rows."
     exit 1
 fi
 
@@ -96,7 +92,7 @@ echo "Enter column number to update (1-$total_cols):"
 read col_to_update
 
 # Validate column number
-if ! echo "$col_to_update" | grep -q "^[0-9]*$"
+if ! echo "$col_to_update" | grep -q "^[0-9][0-9]*$"
 then
     echo "Error: Invalid column number."
     exit 1
@@ -115,8 +111,9 @@ col_type=$(sed -n "${col_to_update}p" "$meta_file" | cut -d: -f2)
 col_name=$(sed -n "${col_to_update}p" "$meta_file" | cut -d: -f1)
 
 # Show current value
-current_value=$(awk -F: -v pk="$pk_value" -v col="$col_to_update" \
-    '$1 == pk {print $col}' "$data_file")
+#sed -n "${row_number}p" "$data_file" is used to print the row number
+#cut -d: -f"$col_to_update" is used to get the column number
+current_value=$(sed -n "${row_number}p" "$data_file" | cut -d: -f"$col_to_update")
 echo ""
 echo "Current value of '$col_name': $current_value"
 
@@ -148,11 +145,12 @@ then
     fi
 fi
 
-# Validation 4: If updating Primary Key, check uniqueness
-if [ "$col_to_update" -eq 1 ]
+# Validation 4: If updating Primary Key column, check uniqueness
+pk_col=$(awk -F: '$3 == "pk" {print NR}' "$meta_file")
+if [ "$col_to_update" -eq "$pk_col" ]
 then
-    existing=$(awk -F: -v pk="$new_value" -v old="$pk_value" \
-        '$1 == pk && $1 != old {print $1}' "$data_file")
+    existing=$(awk -F: -v pk="$new_value" -v row="$row_number" -v pkcol="$pk_col" \
+        'NR != row && $pkcol == pk {print $pkcol}' "$data_file")
     
     if [ -n "$existing" ]
     then
@@ -162,12 +160,12 @@ then
 fi
 
 # Perform the update using awk
-# We go through each line, if PK matches, we update the specific column
+# We go through each line, if row number matches, we update the specific column
 # OFS = ":" sets the output field separator
-awk -F: -v pk="$pk_value" -v col="$col_to_update" -v newval="$new_value" '
+awk -F: -v row="$row_number" -v col="$col_to_update" -v newval="$new_value" '
 BEGIN { OFS = ":" }
 {
-    if ($1 == pk) {
+    if (NR == row) {
         $col = newval
     }
     print
@@ -179,4 +177,3 @@ mv "$data_file.tmp" "$data_file"
 echo ""
 echo "Cell updated successfully!"
 echo "Changed '$col_name' from '$current_value' to '$new_value'"
-

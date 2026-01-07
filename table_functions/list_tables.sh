@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# ============================================
-# LIST TABLES
-# ============================================
-# Purpose: Show all tables in the current database
-# ============================================
-
 # Load common functions
 source ./common.sh
 
@@ -15,8 +9,9 @@ echo ""
 
 # Count metadata files (each table has a .meta file)
 # 2>/dev/null redirects errors (if no .meta files exist)
-count=$(ls "$CURRENT_DB"/*.meta 2>/dev/null | wc -l)
+count=$(find "$CURRENT_DB" -maxdepth 1 -name "*.meta" 2>/dev/null | wc -l)
 
+#check if there are any tables
 if [ "$count" -eq 0 ]
 then
     echo "No tables found."
@@ -25,7 +20,6 @@ fi
 
 echo "Tables:"
 
-# Loop through all .meta files
 for meta_file in "$CURRENT_DB"/*.meta
 do
     if [ -f "$meta_file" ]
@@ -36,4 +30,3 @@ do
         echo "  - $table_name"
     fi
 done
-

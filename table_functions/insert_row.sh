@@ -1,138 +1,142 @@
 #!/bin/bash
 
-# ============================================
-# INSERT ROW
-# ============================================
-# Purpose: Add a new row to a table
-#
-# Important validations:
-#   1. Data type must match column type
-#   2. Primary Key must be unique
-#
-# IMPORTANT: When using "while ... done < file", any "read"
-# inside the loop reads from the FILE, not the keyboard!
-# Solution: Use "read value < /dev/tty" to read from terminal.
-# ============================================
+#in this script it will add a new row to the table
+#the important validations are:
+# 1)primary key should be unique
+# 2)data type should match column type
 
 # Load common functions
 source ./common.sh
 
 echo ""
-echo "=== INSERT ROW ==="
+echo "============== INSERT ROW =============="
 echo ""
 
-# Show available tables
+#show available tables
 echo "Tables in $CURRENT_DB_NAME:"
-for meta_file in "$CURRENT_DB"/*.meta 2>/dev/null
-do
+for meta_file in "$CURRENT_DB"/*.meta
+do 
     if [ -f "$meta_file" ]
-    then
+    then 
         basename "$meta_file" .meta
     fi
 done
 echo ""
 
-# Ask which table
+#Ask which table to insert in
 echo "Enter table name:"
 read table_name
 
-# Check if table exists
+#check if the table exists
 if [ ! -f "$CURRENT_DB/$table_name.meta" ]
 then
     echo "Error: Table '$table_name' does not exist."
     exit 1
 fi
 
+#get meta and data files
 meta_file="$CURRENT_DB/$table_name.meta"
 data_file="$CURRENT_DB/$table_name.data"
 
+#show the columns to the user to insert the data
+#ifs is used to read the file line by line and ignore the delimiter : (coloumn delimiter)
 echo ""
-echo "Enter values for each column:"
-echo ""
-
-# We'll build the row string piece by piece
-row=""
-first_column=true
-pk_value=""
-
-# Read each line from metadata file
-# IFS=: means split on colons
+echo "Columns in '$table_name':"
 while IFS=: read -r col_name col_type pk_marker
 do
-    # Show column info and ask for value
     if [ "$pk_marker" = "pk" ]
     then
-        echo "$col_name ($col_type) [PRIMARY KEY]:"
+        echo "  - $col_name ($col_type) [PRIMARY KEY]"
     else
-        echo "$col_name ($col_type):"
+        echo "  - $col_name ($col_type)"
     fi
+done < "$meta_file"
+echo ""
+
+#we will build the row string piece by piece
+row="" #empty string to build the row
+first_col=true #true to indicate the first column to avoid adding colon at the beginning
+pk_col_num=0 #primary key column number
+col_counter=0 #column counter
+
+#find which column is the primary key
+while IFS=: read -r col_name col_type pk_marker
+do
+    col_counter=$((col_counter + 1))
+    if [ "$pk_marker" = "pk" ]
+    then
+        pk_col_num=$col_counter
+    fi
+done < "$meta_file"
+
+#reset for actual data entry
+col_counter=0
+
+#read each column from the meta file and ask for value
+while IFS=: read -r col_name col_type pk_marker
+do
+    col_counter=$((col_counter + 1))
     
-    # IMPORTANT: Read from /dev/tty (the terminal)
-    # Because we're inside a "while ... done < file" loop,
-    # normal "read" would read from the file, not keyboard!
+    #prompt user for this column's value
+    echo -n "Enter value for '$col_name' ($col_type): "
+    
+    #we will read from /dev/tty because we are in a loop reading from file and normal read will read from file not the keyboard
     read value < /dev/tty
     
-    # Validation 1: Check if value is empty
+    #check if the value is empty 
     if [ -z "$value" ]
-    then
+    then 
         echo "Error: Value cannot be empty."
         exit 1
     fi
-    
-    # Validation 2: Check if value contains colon (our separator)
+
+    #check if value contains colon used as delimiter
     if echo "$value" | grep -q ":"
-    then
+    then 
         echo "Error: Value cannot contain ':' character."
         exit 1
     fi
-    
-    # Validation 3: Check data type
+
+    #check data type for int
     if [ "$col_type" = "int" ]
-    then
-        # For integer, check if it's only digits (and optional minus)
+    then 
         if ! echo "$value" | grep -q "^-*[0-9][0-9]*$"
         then
             echo "Error: '$value' is not a valid integer."
             exit 1
         fi
     fi
-    # For string, any non-empty value is valid
-    
-    # Validation 4: Check Primary Key uniqueness
+
+    #check the primary key uniqueness
     if [ "$pk_marker" = "pk" ]
     then
-        pk_value="$value"
-        
-        # Use awk to check if this PK already exists
-        # -F: sets field separator to colon
-        # $1 is the first field (Primary Key)
-        # We check if any row has this PK value
+        #check if the data file exists and has content
         if [ -f "$data_file" ] && [ -s "$data_file" ]
-        then
-            existing=$(awk -F: -v pk="$pk_value" '$1 == pk {print $1}' "$data_file")
-            
+        then 
+            #use awk to check if the primary key already exists
+            existing=$(awk -F: -v pk="$value" -v col="$pk_col_num" '$col == pk {print "found"}' "$data_file")
             if [ -n "$existing" ]
             then
-                echo "Error: Primary Key '$pk_value' already exists."
+                echo "Error: Primary key '$value' already exists."
                 exit 1
             fi
         fi
     fi
-    
-    # Build the row string
-    if [ "$first_column" = true ]
+
+    #build the row string
+    if [ "$first_col" = true ]
     then
         row="$value"
-        first_column=false
+        first_col=false
     else
         row="$row:$value"
     fi
-    
+
 done < "$meta_file"
 
-# Append row to data file
+#append the row to the data file
 echo "$row" >> "$data_file"
 
 echo ""
 echo "Row inserted successfully!"
-
+echo "Data: $row"
