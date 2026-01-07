@@ -1,3 +1,24 @@
+# Bash Database Management System #
+
+
+  ## How to Run:
+      1. Open terminal in the project folder
+        2. Run: bash db.sh
+            3. Follow the menu options
+
+ ## Quick Start:
+  - Create a database first (option 1)
+  - Connect to it (option 3) to manage tables
+  - Use table menu to create tables, insert data, etc.
+
+               #bash project structure:-
+
+                         | 
+                         |
+                         V
+
+# Database_with_bashScript
+```
 DBMS_Project/
 ├── common.sh              # Step 2: Shared validation like name validation and database directory 
 ├── db.sh                  # Step 3: Main database menu
@@ -16,3 +37,4 @@ DBMS_Project/
 │   ├── delete_row.sh
 │   └── update_cell.sh
 └── databases/             # Auto-created by db.sh
+```
