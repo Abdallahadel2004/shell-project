@@ -53,17 +53,17 @@ DBMS_Project/
 
 ## 📋 Features
 
-| Feature | Description |
-|---------|-------------|
-| Create Database | Create a new database |
-| List Databases | View all existing databases |
-| Connect to Database | Access a specific database |
-| Delete Database | Remove a database |
-| Create Table | Define table structure |
-| Insert Data | Add rows to tables |
-| Update Data | Modify existing cell values |
-| Delete Data | Remove rows from tables |
-| View Data | Display table contents |
+| Feature             | Description                 |
+| ------------------- | --------------------------- |
+| Create Database     | Create a new database       |
+| List Databases      | View all existing databases |
+| Connect to Database | Access a specific database  |
+| Delete Database     | Remove a database           |
+| Create Table        | Define table structure      |
+| Insert Data         | Add rows to tables          |
+| Update Data         | Modify existing cell values |
+| Delete Data         | Remove rows from tables     |
+| View Data           | Display table contents      |
 
 ---
 
